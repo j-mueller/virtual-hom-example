@@ -11,6 +11,7 @@ import           VirtualHom.Components
 import           VirtualHom.Element(attributes, callbacks, children, content, value)
 import qualified VirtualHom.Element as E
 import qualified VirtualHom.Html as H
+import           VirtualHom.Internal.Handler (update)
 import           VirtualHom.Rendering(renderingOptions)
 
 newtype FirstName = FirstName { getFirstName :: Text }
@@ -29,7 +30,7 @@ data Person = Person {
 makeLenses ''Person
 
 
-validatingTextInput :: Monad m => (Text -> Either Text a) -> Component m (Maybe a)
+validatingTextInput :: (Text -> Either Text a) -> Component (Maybe a)
 validatingTextInput f = component "" $ return . result where
   errorMarker = either (const "has-error") (const "") . f
   validated = either (const Nothing) Just . f
@@ -40,23 +41,23 @@ validatingTextInput f = component "" $ return . result where
           & attributes . at "class" ?~ "form-control"
           & attributes . at "type"  ?~ "text"
           & attributes . at "value" ?~ textValue
-          & callbacks . E.change ?~ (\e _ -> return (e^.value, validated $ e^.value))
+          & callbacks . E.change ?~ (\e -> update $ const (e^.value, validated $ e^.value))
     ]
 
-data PersonForm m = PersonForm {
+data PersonForm = PersonForm {
   _fn :: Maybe FirstName,
   _ln :: Maybe LastName,
-  _firstNameInput :: Component m (Maybe FirstName),
-  _lastNameInput  :: Component m (Maybe LastName) 
+  _firstNameInput :: Component (Maybe FirstName),
+  _lastNameInput  :: Component (Maybe LastName) 
 }
 makeLenses ''PersonForm
 
-personForm :: Monad m => PersonForm m
+personForm :: PersonForm
 personForm = PersonForm Nothing Nothing i1 i2 where
   i1 = validatingTextInput validFirstName
   i2 = validatingTextInput validLastName
 
-personComp :: Monad m => Component m ()
+personComp :: Component ()
 personComp = component personForm $ \tpl -> [ container & children .~ [
   row & children .~ [H.h1 "Edit contact"],
   row & children .~ subComponent (state.fn) (state.firstNameInput) tpl,
@@ -73,15 +74,14 @@ personLabel p = [row & children .~ [
 main :: IO ()
 main = do
   let options = renderingOptions "virtual-hom"
-  let interp = return . runIdentity
-  renderComponent options personComp interp ()
+  renderComponent options personComp ()
 
 -- | Utilities
 
 personText :: Person -> Text
 personText p = p^.firstName.to getFirstName <> " " <> p^.lastName.to getLastName
 
-person :: PersonForm m -> Maybe Person
+person :: PersonForm -> Maybe Person
 person pf = Person <$> view fn pf <*> view ln pf 
 
 -- | Bootstrap CSS

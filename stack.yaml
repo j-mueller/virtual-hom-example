@@ -2,7 +2,7 @@ resolver: lts-5.17
 packages:
 - location:
     git: https://github.com/j-mueller/virtual-hom
-    commit: d5399f8d381055901c6da6dc38a7498cdc77655a
+    commit: 115370b01639317f476947bb9a09510b881cae07
 - '.'
 
 compiler: ghcjs-0.2.0.20160315_ghc-7.10.2
